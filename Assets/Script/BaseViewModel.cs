@@ -2,17 +2,22 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+using System;
+
 /// <summary>
-/// ViewModel基类
+/// ViewModel基类：监听语言切换，通知View更新
 /// </summary>
 public class BaseViewModel : IViewModel
 {
     protected IModel _model;
     protected IView _view;
+    protected LanguageManager _langMgr => LanguageManager.Instance;
 
     public virtual void BindModel(IModel model)
     {
         _model = model;
+        // 监听语言切换事件（绑定Model时注册）
+        _langMgr.OnLanguageChanged += OnLangChanged;
     }
 
     public virtual void BindView(IView view)
@@ -21,36 +26,37 @@ public class BaseViewModel : IViewModel
     }
 
     /// <summary>
-    /// 处理View发送的事件
+    /// 处理View事件
     /// </summary>
-    /// <param name="eventName"></param>
-    /// <param name="param"></param>
-    public virtual void OnViewEvent(string eventName, object param)
-    {
-        // 子类重写：处理具体业务逻辑
-        switch (eventName)
-        {
-            case "Button_Confirm_Click":
-                // 示例：处理确认按钮点击
-                break;
-        }
-    }
+    public virtual void OnViewEvent(string eventName, object param) { }
 
     /// <summary>
     /// 更新Model数据
     /// </summary>
-    /// <param name="data"></param>
-    public virtual void UpdateModel(object data)
+    public virtual void UpdateModel(object data) { }
+
+    /// <summary>
+    /// 语言切换回调：通知View更新文案
+    /// </summary>
+    protected virtual void OnLangChanged()
     {
-        _model?.SaveData(data);
+        // 通知View刷新所有文案（可传递当前语言）
+        _view?.UpdateView(new { IsLangChange = true, Lang = _langMgr.CurrentLang });
     }
 
     /// <summary>
-    /// 通知View更新UI
+    /// 通知View更新
     /// </summary>
-    /// <param name="data"></param>
     protected void NotifyViewUpdate(object data)
     {
         _view?.UpdateView(data);
+    }
+
+    /// <summary>
+    /// 取消监听（防止内存泄漏）
+    /// </summary>
+    public virtual void Dispose()
+    {
+        _langMgr.OnLanguageChanged -= OnLangChanged;
     }
 }
